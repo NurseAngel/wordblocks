@@ -1,77 +1,94 @@
-package nurseangel.WordBlocks;
+package mods.nurseangel.wordblocks;
 
 import java.util.Random;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
+import net.minecraft.client.renderer.texture.IconRegister;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.world.IBlockAccess;
+import net.minecraft.util.Icon;
 import net.minecraft.world.World;
+import cpw.mods.fml.relauncher.Side;
+import cpw.mods.fml.relauncher.SideOnly;
 
 public class BlockWordBlock extends Block {
 
-	// 使用するブロックのメタデータの個数 (0-9で10、A-Mで13)
+	// 使用するブロックのメタデータの個数
 	private int blockIndexMax;
+	private String textureName;
+	private Icon iconTop;
+	private Icon iconBottom;
 
 	/**
 	 * コンストラクタ
 	 *
 	 * @param int ブロックID
 	 * @param String
-	 *            素材ファイル名(MinecraftForgeClient.preloadTextureしたもの)
-	 * @param int 使用するテクスチャの開始地点
-	 * @param int 使用するテクスチャ数(↑からの個数)
+	 *            テクスチャに使うブロック名
+	 * @param int 使用するテクスチャ数
 	 */
-	public BlockWordBlock(int par1, int blockIndexMin, int blockIndexMax) {
+	public BlockWordBlock(int par1, String textureName, int blockIndexMax) {
 		super(par1, Material.wood);
 
-		setTextureFile(Reference.TEXTURE_FILE);
-
 		// 使用するテクスチャの開始番号と使用数
-		this.blockIndexInTexture = blockIndexMin;
 		this.blockIndexMax = blockIndexMax;
+		this.textureName = textureName;
 
 		setHardness(1.0F);
 		setLightValue(1.0F);
-		setRequiresSelfNotify();
 
 		this.setCreativeTab(CreativeTabs.tabDecorations);
 	}
 
 	/**
-	 * 使用するテクスチャ 設置時
+	 * 使用するアイコンをセット
 	 *
-	 * @param IBlockAccess
-	 * @param int i,j,k XYZ
-	 * @param int 方向
-	 *
+	 * @param iconRegister
 	 */
 	@Override
-	public int getBlockTexture(IBlockAccess par1IBlockAccess, int i, int j, int k, int side) {
-		// 上下は変更無し
-		if (side < 2) {
-			return this.blockIndexInTexture;
+	@SideOnly(Side.CLIENT)
+	public void registerIcons(IconRegister iconRegister) {
+		int loop = 0;
+		for (int i = 0; i <= blockIndexMax; i++) {
+			// 素材名からアイコンファイル名を作成
+			String texturePath = Reference.TEXTURE_PATH + textureName + i;
+			icon[i] = iconRegister.registerIcon(texturePath);
 		}
-		// その他 上下(=無地)+1から+16まで使用可能
-		int m = par1IBlockAccess.getBlockMetadata(i, j, k);
-		return this.blockIndexInTexture + m + 1;
+
+		// top,bottom
+		String textureTop = Reference.TEXTURE_PATH + textureName + "Top";
+		String textureBottom = Reference.TEXTURE_PATH + textureName + "Bottom";
+		iconTop = iconRegister.registerIcon(textureTop);
+		iconBottom = iconRegister.registerIcon(textureBottom);
+
 	}
 
-	//
+	// 横のテクスチャ
+	Icon[] icon = new Icon[16];
 
 	/**
-	 * 使用するテクスチャ番号。手持ち時
+	 * アイコンを取得
 	 *
-	 * @param int 方向
-	 * @param int メタデータ
+	 * @param 取得する方角
+	 * @param メタデータ
 	 */
 	@Override
-	public int getBlockTextureFromSideAndMetadata(int side, int metadata) {
-		if (side < 2) {
-			return this.blockIndexInTexture;
+	@SideOnly(Side.CLIENT)
+	public Icon getIcon(int direction, int metadata) {
+
+		// 方向0、1は上下
+		if (direction < 2) {
+			if (direction == 0) {
+				return iconBottom;
+			} else {
+				return iconTop;
+			}
 		}
-		return this.blockIndexInTexture + 1;
+
+		// 方向2以上はメタデータそのまま
+		return icon[metadata];
+
 	}
 
 	/**
@@ -119,10 +136,10 @@ public class BlockWordBlock extends Block {
 	 * 何tickごとに呼ばれるか。 これだけでは動かず、scheduleBlockUpdateでセットしないといけない。
 	 * つまり、これ指定する意味あんまりないんじゃね。
 	 */
-	@Override
-	public int tickRate() {
-		return 4;
-	}
+	// @Override
+	// public int tickRate() {
+	// return 4;
+	// }
 
 	/**
 	 * 隣接ブロックに変化があったときに呼ばれる。どの方向から呼ばれたかは、調べないとわからない
@@ -137,7 +154,7 @@ public class BlockWordBlock extends Block {
 		// 隣接ブロックがソウルサンドだった場合
 		if (par5 == Block.slowSand.blockID) {
 			// メタデータをリセットして終了
-			par1World.setBlockMetadataWithNotify(par2, par3, par4, 0);
+			par1World.setBlockMetadataWithNotify(par2, par3, par4, 0, 2);
 			return;
 		}
 
@@ -155,7 +172,7 @@ public class BlockWordBlock extends Block {
 			boolean var6 = par1World.isBlockIndirectlyGettingPowered(par2, par3, par4) || par1World.isBlockIndirectlyGettingPowered(par2, par3 + 1, par4);
 			if (var6) {
 				// 4tick後にupdateTickを呼び出す
-				par1World.scheduleBlockUpdate(par2, par3, par4, this.blockID, this.tickRate());
+				par1World.scheduleBlockUpdate(par2, par3, par4, this.blockID, 4);
 			}
 		}
 	}
@@ -191,7 +208,7 @@ public class BlockWordBlock extends Block {
 		} else {
 			m--;
 		}
-		world.setBlockMetadataWithNotify(i, j, k, m);
+		world.setBlockMetadataWithNotify(i, j, k, m, 2);
 		return;
 	}
 
@@ -210,7 +227,7 @@ public class BlockWordBlock extends Block {
 		} else {
 			m++;
 		}
-		world.setBlockMetadataWithNotify(i, j, k, m);
+		world.setBlockMetadataWithNotify(i, j, k, m, 2);
 		return;
 	}
 

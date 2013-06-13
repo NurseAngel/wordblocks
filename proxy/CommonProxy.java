@@ -1,8 +1,5 @@
-package nurseangel.WordBlocks.proxy;
+package mods.nurseangel.wordblocks.proxy;
 
 public class CommonProxy
 {
-    public void registerRenderers()
-    {
-    }
 }
